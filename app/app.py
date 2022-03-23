@@ -30,7 +30,7 @@ async def on_start(app):
                                               host=config['host'])
         logger.info('Получено соединение с БД')
     except Exception as e:
-        logger.info(f'Ошибка соединения с БД: {e}')
+        logger.error(f'Ошибка соединения с БД: {e}')
 
 
 async def on_shutdown(app):

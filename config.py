@@ -1,7 +1,7 @@
 DB_SETTINGS = dict(
-    host='',
-    db='',
+    host='localhost',
+    db='postgres',
     port=5432,
-    user='',
-    password=''
+    user='postgres',
+    password='postgres'
 )

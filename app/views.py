@@ -1,3 +1,4 @@
+import asyncpg
 from aiohttp import web
 
 from utils.logger import LogDispatcher
@@ -8,11 +9,11 @@ logger = LogDispatcher().log
 
 async def get_profile(request):
     """Подробная информация по профилю по profile_id или phone_number
-    Пример .../api/v1/profile/?profile_id=1
-    profile_id - profile_id профиля
+    Пример .../api/v1/profile?profile_id=1
+    profile_id(int) - profile_id профиля
 
     Пример .../api/v1/profile/?phone_number=+7999999999999
-    phone_number - phone_number профиля
+    phone_number(str) - phone_number профиля
 
     result = {
     "id": id(int),
@@ -53,16 +54,15 @@ async def get_profile(request):
             query = create_query_for_profile(request)
             result = await connection.fetchrow(query)
             dict_result = prepare_pg_record_to_json(result)
-            logger.info(f'Получена информация по профилю - id = {dict_result["id"]}')
             return web.json_response(dict_result)
 
 
 async def get_mile_transactions(request):
     """Подробная информация о всех мильных транзакциях пользователя с возможностью указания временных промежутков
     Пример .../api/v1/mile_transactions/1?start_datetime=2021-12-04 10:36:00&last_datetime=2022-03-03 10:36:00
-    1 - profile_id
-    start_datetime - стартовое время фильтрации
-    last_datetime - конечное время фильтрации
+    1 - profile_id(int)
+    start_datetime(str) - стартовое время фильтрации
+    last_datetime(str) - конечное время фильтрации
 
     result = [
         {
@@ -87,7 +87,10 @@ async def get_mile_transactions(request):
     async with pool.acquire() as connection:
         query = create_mile_transaction_query(request)
         async with connection.transaction():
-            result = await connection.fetch(query)
-            dict_result = [prepare_pg_record_to_json(ix) for ix in result]
-            logger.info(f'Получены мильные транзакции профиля - id = {request.match_info["profile_id"]}')
+            try:
+                result = await connection.fetch(query)
+            except asyncpg.InvalidDatetimeFormatError:
+                logger.error(f'Неправильный формат даты {str(request.rel_url)}')
+                raise web.HTTPBadRequest()
+            dict_result = [prepare_pg_record_to_json(i) for i in result]
             return web.json_response(dict_result)

@@ -10,9 +10,9 @@ logger = LogDispatcher().log
 
 def create_query_for_profile(request):
     """Создание запроса для получения информации по профилю"""
-    profile_id = request.rel_url.query.get('profile_id', None)
-    phone_number = request.rel_url.query.get('phone_number', None)
-    if profile_id or phone_number:
+    profile_id = request.rel_url.query.get('profile_id')
+    phone_number = request.rel_url.query.get('phone_number')
+    if validate_profile_id(profile_id) or phone_number:
         query = f'id = {profile_id}' if profile_id else f"phone_number = '{unquote(phone_number)}'"
         query = f'select * from public.profiles where {query}'
         return query
@@ -28,13 +28,26 @@ def create_mile_transaction_query(request):
     last_datetime = request.rel_url.query.get('last_datetime', None)
     query = f"SELECT * FROM public.mile_transactions WHERE profile_id = {profile_id}"
     if start_datetime:
-        query = query + f" AND created_date >= '{start_datetime}'"
+        query = query + f" AND created_date >= '{unquote(start_datetime)}'"
     if last_datetime:
-        query = query + f" AND created_date <= '{last_datetime}'"
+        query = query + f" AND created_date <= '{unquote(last_datetime)}'"
     return query
 
 
 def prepare_pg_record_to_json(record_dict):
     """Подготовка объекта БД к конвертации в JSON"""
-    return \
-        {key: str(value) if isinstance(value, (date, datetime)) else value for key, value in dict(record_dict).items()}
+    if record_dict:
+        return {
+            key: str(value) if isinstance(value, (date, datetime)) else value
+            for key, value in dict(record_dict).items()
+        }
+    else:
+        return None
+
+
+def validate_profile_id(profile_id):
+    try:
+        int(profile_id)
+        return profile_id
+    except ValueError:
+        return None
