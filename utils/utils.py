@@ -46,8 +46,5 @@ def prepare_pg_record_to_json(record_dict):
 
 
 def validate_profile_id(profile_id):
-    try:
-        int(profile_id)
-        return profile_id
-    except ValueError:
-        return None
+    """Валидация profile_id"""
+    return profile_id if profile_id.isnumeric() else None
